@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday Sai!</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff85a1;
+            --secondary: #fbb1bd;
+            --accent: #9b5de5;
+            --bg: #feeaf1;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            color: #444;
+        }
+
+        #game-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(255, 133, 161, 0.3);
+            text-align: center;
+            max-width: 90%;
+            width: 500px;
+            position: relative;
+            border: 4px solid var(--primary);
+        }
+
+        h1 { font-family: 'Fredoka One', cursive; color: var(--primary); margin-bottom: 10px; }
+        .clue { font-size: 1.2rem; margin-bottom: 20px; font-weight: 700; color: #6a4c93; }
+
+        /* Unique Letter Inputs */
+        .answer-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .letter-box {
+            width: 35px;
+            height: 45px;
+            border: 3px solid var(--secondary);
+            border-radius: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            background: #fff;
+            color: var(--accent);
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .letter-box:focus { border-color: var(--primary); transform: scale(1.1); }
+
+        /* Buttons */
+        .btn-group { display: flex; justify-content: center; gap: 10px; }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            font-family: 'Fredoka One', cursive;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .submit-btn { background: var(--primary); color: white; }
+        .hint-btn { background: var(--accent); color: white; }
+        .skip-btn { background: #eee; color: #999; }
+        button:hover { transform: scale(1.05); }
+
+        /* Anime Character Style Decor */
+        .character {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Popups */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .popup {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="character">🌸 (◕‿◕) 🌸</div>
+    <h1 id="title">Hi Sai! Ready?</h1>
+    <p id="clue-text" class="clue">Click below to start the birthday quest!</p>
+    
+    <div id="answer-slots" class="answer-container"></div>
+
+    <div class="btn-group">
+        <button id="main-btn" class="submit-btn" onclick="checkAnswer()">Start Game</button>
+        <button id="hint-btn" class="hint-btn" style="display:none" onclick="giveHint()">Hint ✨</button>
+        <button id="skip-btn" class="skip-btn" style="display:none" onclick="fakeSkip()">Skip</button>
+    </div>
+</div>
+
+<div id="overlay" class="overlay">
+    <div class="popup">
+        <h2 id="popup-emoji">✨</h2>
+        <p id="popup-text"></p>
+        <button class="submit-btn" onclick="closePopup()">Next Question!</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "The reason my bad days don’t last long", a: "YOU", msg: "Because you're my sunshine, Sai! ☀️" },
+        { q: "Our favorite way to spend time together", a: "LONG TALKS", msg: "I could listen to you forever... 💬" },
+        { q: "The trip that changed everything for us", a: "CATALINA ISLAND", msg: "That blue water had nothing on your eyes! 🌊💙" },
+        { q: "The nickname only I use for you", a: "SUBBU", msg: "My one and only Subbu! 🥰" },
+        { q: "Your favorite comfort food", a: "SAMBAR", msg: "Adding spice to my life, just like Sambar! 🍲" },
+        { q: "What you do when you’re stressed", a: "SILENCE", msg: "Even in your silence, I hear your heart. 🤍" },
+        { q: "What I see when I imagine my future", a: "US", msg: "Always and forever, Sai. 💍" },
+        { q: "The best decision of my life", a: "MARRYING YOU", msg: "I'd say 'I Do' a million times over! ✨" },
+        { q: "What you do when I’m upset", a: "LISTEN", msg: "You're my safest place to land. 👂💗" },
+        { q: "What you give when I need it most", a: "TIME", msg: "The most precious gift you give me. ⏳" },
+        { q: "Your way of saying “I care”", a: "ACTIONS", msg: "You show me love in every little thing. 🛠️❤️" },
+        { q: "The answer that connects everything", a: "LOVE", msg: "Happy Birthday, Sai! You are my whole world! 🎂❤️" }
+    ];
+
+    let currentQ = 0;
+    let gameStarted = false;
+
+    function startGame() {
+        gameStarted = true;
+        document.getElementById('main-btn').innerText = "Submit";
+        document.getElementById('hint-btn').style.display = "inline-block";
+        document.getElementById('skip-btn').style.display = "inline-block";
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        const q = questions[currentQ];
+        document.getElementById('clue-text').innerText = q.q;
+        const container = document.getElementById('answer-slots');
+        container.innerHTML = '';
+        
+        q.a.split('').forEach((char, index) => {
+            if(char === ' ') {
+                const space = document.createElement('div');
+                space.style.width = '100%';
+                container.appendChild(space);
+            } else {
+                const input = document.createElement('input');
+                input.className = 'letter-box';
+                input.maxLength = 1;
+                input.id = `l-${index}`;
+                input.oninput = (e) => {
+                    if(e.target.value && document.getElementById(`l-${index+1}`)) 
+                        document.getElementById(`l-${index+1}`).focus();
+                };
+                container.appendChild(input);
+            }
+        });
+    }
+
+    function checkAnswer() {
+        if(!gameStarted) { startGame(); return; }
+
+        const q = questions[currentQ];
+        let userAns = '';
+        q.a.split('').forEach((char, index) => {
+            if(char === ' ') userAns += ' ';
+            else userAns += document.getElementById(`l-${index}`).value.toUpperCase();
+        });
+
+        if(userAns === q.a) {
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            showPopup("⭐ (๑˃ᴗ˂) ⭐", q.msg);
+        } else {
+            alert("Oops! Try again, my love! ❤️");
+        }
+    }
+
+    function giveHint() {
+        const q = questions[currentQ];
+        const boxes = document.getElementsByClassName('letter-box');
+        for(let i=0; i < q.a.replace(/ /g, '').length; i++) {
+            if(boxes[i].value === "") {
+                const realChar = q.a.replace(/ /g, '')[i];
+                boxes[i].value = realChar;
+                boxes[i].style.backgroundColor = "#e0f7fa";
+                break;
+            }
+        }
+    }
+
+    function fakeSkip() {
+        const messages = [
+            "Nice try, Sai! No skipping the love! 😂",
+            "Are you trying to run away? I'm faster! 🏃‍♀️❤️",
+            "Shortcut denied! You're too cute to skip! ✨",
+            "Even if you skip, I'll still love you! (But don't!) 😋"
+        ];
+        alert(messages[Math.floor(Math.random()*messages.length)]);
+    }
+
+    function showPopup(emoji, text) {
+        document.getElementById('popup-emoji').innerText = emoji;
+        document.getElementById('popup-text').innerText = text;
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function closePopup() {
+        document.getElementById('overlay').style.display = 'none';
+        currentQ++;
+        if(currentQ < questions.length) {
+            loadQuestion();
+        } else {
+            document.getElementById('game-container').innerHTML = `
+                <div class="character">🎂 🥳 🎈</div>
+                <h1>Happy Birthday Sai!</h1>
+                <p class="clue">You finished it! You are the best husband in the world. I love you to the moon and back!</p>
+                <div class="character">💖 ✨ 💖</div>
+            `;
+            confetti({ particleCount: 200, spread: 100, origin: { y: 0.5 } });
+        }
+    }
+</script>
+</body>
+</html>
