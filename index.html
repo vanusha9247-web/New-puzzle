@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Birthday Surprise for Sai ❤️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0b0b;
+            --cell-size: 38px;
+            --correct: #2ecc71;
+            --wrong: #e74c3c;
+            --highlight: #f1c40f;
+            --box-bg: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        h1 { font-family: 'Dancing Script', cursive; color: #ff4d6d; font-size: 3.5rem; margin: 10px 0; text-shadow: 0 0 10px rgba(255,77,109,0.3); }
+
+        #game-layout { display: flex; gap: 40px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+
+        #grid-wrapper {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 12px;
+            display: grid;
+            grid-template-columns: repeat(20, var(--cell-size));
+            grid-template-rows: repeat(18, var(--cell-size));
+            gap: 2px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            background: var(--box-bg);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            color: #222;
+        }
+
+        .cell input {
+            width: 100%; height: 100%; border: none; text-align: center;
+            font-size: 1.1rem; font-weight: bold; text-transform: uppercase;
+            background: transparent; outline: none; border-radius: 4px;
+        }
+
+        .cell-num {
+            position: absolute; top: 1px; left: 2px;
+            font-size: 0.6rem; color: #777; font-weight: bold;
+        }
+
+        .empty { background: transparent !important; }
+        .highlighted { background: var(--highlight) !important; color: black !important; }
+        .correct { background: var(--correct) !important; color: white !important; transition: 0.4s; transform: scale(1.02); }
+        .wrong { background: var(--wrong) !important; color: white !important; animation: shake 0.3s; }
+
+        @keyframes shake { 0%,100% {transform: translateX(0);} 25% {transform: translateX(-4px);} 75% {transform: translateX(4px);} }
+
+        /* Clue Sidebar */
+        #clue-sidebar { width: 380px; background: #1a1a1a; padding: 25px; border-radius: 15px; border: 1px solid #333; }
+        .clue-group h3 { color: #ff4d6d; border-bottom: 2px solid #ff4d6d; padding-bottom: 5px; margin-top: 0; }
+        .clue-row { display: flex; align-items: center; gap: 10px; margin: 15px 0; }
+        .clue-text { flex-grow: 1; font-size: 0.95rem; line-height: 1.3; }
+        
+        button { cursor: pointer; border: none; border-radius: 15px; transition: 0.3s; font-weight: bold; }
+        .btn-hint { background: #4cc9f0; color: white; padding: 5px 12px; font-size: 0.8rem; }
+        .btn-hint:hover { transform: scale(1.1); background: #4895ef; }
+
+        /* Popups */
+        #overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.92); z-index: 1000; justify-content: center; align-items: center;
+        }
+        #popup {
+            background: white; color: #222; padding: 40px; border-radius: 25px;
+            text-align: center; max-width: 400px; position: relative;
+            box-shadow: 0 0 50px rgba(255, 77, 109, 0.5);
+            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        @keyframes bounceIn { from {transform: scale(0.5); opacity:0;} to {transform: scale(1); opacity:1;} }
+        
+        .btn-close { background: #ff4d6d; color: white; padding: 12px 30px; border-radius: 25px; margin-top: 20px; font-size: 1rem; }
+    </style>
+</head>
+<body>
+
+    <h1>Happy Birthday, Sai! ❤️</h1>
+
+    <div id="game-layout">
+        <div id="grid-wrapper"></div>
+
+        <div id="clue-sidebar">
+            <div class="clue-group">
+                <h3>Across</h3>
+                <div id="across-list"></div>
+            </div>
+            <div class="clue-group" style="margin-top: 25px;">
+                <h3>Down</h3>
+                <div id="down-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <div id="popup">
+            <h2 id="p-title" style="color:#ff4d6d; font-family:'Dancing Script'; font-size: 2.2rem; margin:0 0 15px 0;"></h2>
+            <p id="p-text" style="font-size: 1.1rem; color: #444; line-height: 1.5;"></p>
+            <button class="btn-close" onclick="closePopup()">You're Sweet! ❤️</button>
+        </div>
+    </div>
+
+    <script>
+        const clues = {
+            across: [
+                {id: 11, r: 2, c: 10, a: "ACTIONS", q: "Your way of saying 'I care'", m: "Because your love is a verb, and you show it every day! ✨"},
+                {id: 9, r: 4, c: 7, a: "LISTEN", q: "What you do when I’m upset", m: "Thank you for being my safe place to land and always hearing my heart. 👂"},
+                {id: 6, r: 8, c: 6, a: "SILENCE", q: "What you do when you’re stressed", m: "I'll always be your peaceful corner of the world. 🤫"},
+                {id: 8, r: 10, c: 0, a: "MARRYINGYOU", q: "The best decision of my life", m: "Walking toward you was the best step I ever took. I'd do it 1000x over! 💍"},
+                {id: 5, r: 12, c: 12, a: "SAMBAR", q: "Your favorite comfort food", m: "Just as warm, spicy, and soul-satisfying as your hugs! 🍛"},
+                {id: 12, r: 15, c: 5, a: "LOVE", q: "The answer that connects everything", m: "You are my heart's permanent home, Sai. Forever! ❤️"}
+            ],
+            down: [
+                {id: 3, r: 2, c: 11, a: "CATALINAISLAND", q: "The trip that changed everything for us", m: "That island breeze and your smile... I knew then you were the one. 🌊"},
+                {id: 1, r: 7, c: 6, a: "YOU", q: "The reason my bad days don’t last long", m: "One look at you and my world is bright again. ☀️"},
+                {id: 10, r: 8, c: 0, a: "TIME", q: "What you give when I need it most", m: "Your presence is the most precious gift I've ever received. ⏳"},
+                {id: 4, r: 9, c: 15, a: "SUBBU", q: "The nickname only I use for you", m: "My favorite name to whisper, meant only for my favorite person! 🥰"},
+                {id: 7, r: 10, c: 15, a: "US", q: "What I see when I imagine my future", m: "Hand in hand, year after year. It's always been us. 👩‍❤️‍👨"},
+                {id: 2, r: 8, c: 8, a: "LONGTALKS", q: "Our favorite way to spend time together", m: "From silly jokes to deep dreams, I love every word with you. 💬"}
+            ]
+        };
+
+        const highlights = ["2-11", "2-17", "4-7", "4-12", "8-6", "8-8", "8-11", "10-0", "10-5", "10-11", "10-15", "11-11", "12-17", "13-8", "15-8", "15-11"];
+        const gridMap = {};
+
+        function init() {
+            [...clues.across, ...clues.down].forEach(word => {
+                for (let i = 0; i < word.a.length; i++) {
+                    const r = word.a === word.a && clues.down.includes(word) ? word.r + i : word.r;
+                    const c = clues.across.includes(word) ? word.c + i : word.c;
+                    const key = `${r}-${c}`;
+                    if (!gridMap[key]) gridMap[key] = { char: word.a[i], num: (i === 0 ? word.id : null) };
+                    else if (i === 0) gridMap[key].num = word.id;
+                }
+            });
+
+            for (let r = 0; r < 18; r++) {
+                for (let c = 0; c < 20; c++) {
+                    const key = `${r}-${c}`;
+                    const cellData = gridMap[key];
+                    const div = document.createElement('div');
+                    div.className = 'cell ' + (cellData ? '' : 'empty');
+                    if (cellData) {
+                        if (cellData.num) div.innerHTML = `<span class="cell-num">${cellData.num}</span>`;
+                        if (highlights.includes(key)) {
+                            div.classList.add('highlighted');
+                            div.append(cellData.char);
+                        } else {
+                            const input = document.createElement('input');
+                            input.maxLength = 1;
+                            input.dataset.key = key;
+                            input.dataset.ans = cellData.char;
+                            input.addEventListener('input', (e) => check(e, div));
+                            div.appendChild(input);
+                        }
+                    }
+                    document.getElementById('grid-wrapper').appendChild(div);
+                }
+            }
+
+            const renderClues = (list, targetId) => {
+                const box = document.getElementById(targetId);
+                list.sort((a,b) => a.id - b.id).forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'clue-row';
+                    row.innerHTML = `<div class="clue-text"><strong>${item.id}.</strong> ${item.q}</div>
+                                     <button class="btn-hint" onclick="giveHint(${item.id})">Hint</button>`;
+                    box.appendChild(row);
+                });
+            }
+            renderClues(clues.across, 'across-list');
+            renderClues(clues.down, 'down-list');
+        }
+
+        function giveHint(id) {
+            const word = [...clues.across, ...clues.down].find(w => w.id === id);
+            showPopup(`A Message for Sai...`, word.m);
+            // Auto-fill the first empty letter of that word as a bonus hint
+            const inputs = Array.from(document.querySelectorAll('input'));
+            const firstLetterInput = inputs.find(i => i.dataset.ans === word.a[0]);
+            if(firstLetterInput && firstLetterInput.value === "") {
+                firstLetterInput.value = word.a[0];
+                firstLetterInput.parentElement.classList.add('correct');
+            }
+        }
+
+        function check(e, parent) {
+            const val = e.target.value.toUpperCase();
+            if (val === e.target.dataset.ans) {
+                parent.className = 'cell correct';
+                const inputs = Array.from(document.querySelectorAll('input'));
+                const next = inputs[inputs.indexOf(e.target) + 1];
+                if (next) next.focus();
+                if (inputs.every(i => i.value.toUpperCase() === i.dataset.ans)) celebrate();
+            } else if (val !== "") {
+                parent.classList.add('wrong');
+                setTimeout(() => { parent.classList.remove('wrong'); e.target.value = ""; }, 400);
+            }
+        }
+
+        function showPopup(title, text) {
+            document.getElementById('p-title').innerText = title;
+            document.getElementById('p-text').innerText = text;
+            document.getElementById('overlay').style.display = 'flex';
+        }
+
+        function closePopup() { document.getElementById('overlay').style.display = 'none'; }
+
+        function celebrate() {
+            showPopup("HAPPY BIRTHDAY SAI! 🎉", "You solved it! You know our story by heart. I love you more than words can say!");
+            setInterval(() => {
+                const heart = document.createElement('div');
+                heart.style.position = 'fixed';
+                heart.innerHTML = ['❤️','💖','🎂','🎈'][Math.floor(Math.random()*4)];
+                heart.style.left = Math.random() * 100 + 'vw';
+                heart.style.top = '100vh';
+                heart.style.fontSize = '30px';
+                heart.style.zIndex = '2000';
+                document.body.appendChild(heart);
+                heart.animate([{ transform: 'translateY(0) scale(1)' }, { transform: `translateY(-110vh) scale(1.5) rotate(${Math.random()*360}deg)` }], { duration: 4000 });
+                setTimeout(() => heart.remove(), 4000);
+            }, 100);
+        }
+
+        init();
+    </script>
+</body>
+</html>
