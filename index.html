@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Birthday Surprise for Sai ❤️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #000000;
+            --cell-size: 34px;
+            --correct: #4CAF50;
+            --wrong: #F44336;
+            --highlight: #FFD700;
+            --box-bg: #FFFFFF;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 { font-family: 'Dancing Script', cursive; color: #ff4d6d; font-size: 3rem; margin: 10px 0; }
+
+        #game-layout { display: flex; gap: 30px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+
+        #grid-wrapper {
+            background: #111;
+            padding: 15px;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: repeat(20, var(--cell-size));
+            grid-template-rows: repeat(18, var(--cell-size));
+            gap: 2px;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            background: var(--box-bg);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            color: #000;
+        }
+
+        .cell input {
+            width: 100%; height: 100%; border: none; text-align: center;
+            font-size: 1.2rem; font-weight: bold; text-transform: uppercase;
+            background: transparent; outline: none;
+        }
+
+        .cell-num {
+            position: absolute; top: 1px; left: 1px;
+            font-size: 0.6rem; color: #666; font-weight: bold; pointer-events: none;
+        }
+
+        .empty { background: transparent !important; }
+        .highlighted { background: var(--highlight) !important; color: black !important; }
+        .correct { background: var(--correct) !important; color: white !important; }
+        .wrong { background: var(--wrong) !important; color: white !important; animation: shake 0.2s; }
+
+        @keyframes shake { 0%,100% {transform:translateX(0);} 50% {transform:translateX(3px);} }
+
+        #sidebar { width: 350px; background: #111; padding: 20px; border-radius: 10px; border: 1px solid #333; }
+        .clue-item { margin-bottom: 15px; border-bottom: 1px solid #222; padding-bottom: 10px; }
+        .clue-text { font-size: 0.9rem; margin-bottom: 5px; color: #eee; }
+        
+        button { cursor: pointer; border: none; border-radius: 20px; font-weight: bold; transition: 0.3s; }
+        .btn-hint { background: #ff4d6d; color: white; padding: 5px 15px; font-size: 0.8rem; margin-right: 5px; }
+        .btn-reveal { background: #4cc9f0; color: white; padding: 5px 15px; font-size: 0.8rem; }
+
+        #overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center;
+        }
+        #popup {
+            background: white; color: #000; padding: 30px; border-radius: 15px;
+            text-align: center; max-width: 350px; box-shadow: 0 0 20px #ff4d6d;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Happy Birthday, Sai! ❤️</h1>
+
+    <div id="game-layout">
+        <div id="grid-wrapper"></div>
+        <div id="sidebar">
+            <h3 style="color:#ff4d6d; margin-top:0;">Questions</h3>
+            <div id="clue-list"></div>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <div id="popup">
+            <h2 id="p-title" style="color:#ff4d6d; font-family:'Dancing Script';">Message</h2>
+            <p id="p-text"></p>
+            <button onclick="closePopup()" style="background:#ff4d6d; color:white; padding:10px 20px; border-radius:20px;">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const puzzleData = [
+            {id: 1, r: 10, c: 11, a: "YOU", q: "The reason my bad days don’t last long", m: "You're my sunshine, Sai! ☀️", d: "v"},
+            {id: 2, r: 8, c: 8, a: "LONGTALKS", q: "Our favorite way to spend time together", m: "I could talk to you forever. 💬", d: "v"},
+            {id: 3, r: 2, c: 11, a: "CATALINAISLAND", q: "The trip that changed everything for us", m: "Perfect emotional anchor. 🌊", d: "v"},
+            {id: 4, r: 9, c: 15, a: "SUBBU", q: "The nickname only I use for you", m: "This one always melts me! 🥰", d: "v"},
+            {id: 5, r: 12, c: 11, a: "SAMBAR", q: "Your favorite comfort food", m: "Warm and perfect! 🍛", d: "h"},
+            {id: 6, r: 8, c: 6, a: "SILENCE", q: "What you do when you’re stressed", m: "Quietly powerful. 🤫", d: "h"},
+            {id: 7, r: 10, c: 15, a: "US", q: "What I see when I imagine my future", m: "It's always been you. ❤️", d: "v"},
+            {id: 8, r: 10, c: 0, a: "MARRYINGYOU", q: "The best decision of my life", m: "Chef’s kiss for a life with you! 💍", d: "h"},
+            {id: 9, r: 4, c: 7, a: "LISTEN", q: "What you do when I’m upset", m: "Thank you for hearing me. 👂", d: "h"},
+            {id: 10, r: 8, c: 0, a: "TIME", q: "What you give when I need it most", m: "The best gift you give. ⏳", d: "v"},
+            {id: 11, r: 2, c: 10, a: "ACTIONS", q: "Your way of saying 'I care'", m: "You show me every day. ✨", d: "h"},
+            {id: 12, r: 15, c: 8, a: "LOVE", q: "The answer that connects everything", m: "I love you forever! ❤️", d: "h"}
+        ];
+
+        // Specific Yellow Cells from Excel
+        const fixed = ["2-11", "2-16", "4-7", "4-12", "8-6", "8-8", "8-11", "10-0", "10-5", "10-11", "10-15", "11-11", "12-16", "13-8", "15-8", "15-11"];
+        const gridCells = {};
+
+        function init() {
+            puzzleData.forEach(w => {
+                for (let i = 0; i < w.a.length; i++) {
+                    const r = w.d === "v" ? w.r + i : w.r;
+                    const c = w.d === "h" ? w.c + i : w.c;
+                    const key = `${r}-${c}`;
+                    if (!gridCells[key]) gridCells[key] = { char: w.a[i], num: (i === 0 ? w.id : null) };
+                    else if (i === 0) gridCells[key].num = w.id;
+                }
+            });
+
+            const grid = document.getElementById('grid-wrapper');
+            for (let r = 0; r < 18; r++) {
+                for (let c = 0; c < 20; c++) {
+                    const key = `${r}-${c}`;
+                    const data = gridCells[key];
+                    const div = document.createElement('div');
+                    div.className = 'cell ' + (data ? '' : 'empty');
+                    if (data) {
+                        if (data.num) div.innerHTML = `<span class="cell-num">${data.num}</span>`;
+                        if (fixed.includes(key)) {
+                            div.classList.add('highlighted');
+                            div.append(data.char);
+                        } else {
+                            const input = document.createElement('input');
+                            input.maxLength = 1;
+                            input.dataset.ans = data.char;
+                            input.addEventListener('input', (e) => handle(e, div));
+                            div.appendChild(input);
+                        }
+                    }
+                    grid.appendChild(div);
+                }
+            }
+
+            const list = document.getElementById('clue-list');
+            puzzleData.sort((a,b)=>a.id-b.id).forEach(w => {
+                const item = document.createElement('div');
+                item.className = 'clue-item';
+                item.innerHTML = `<div class="clue-text"><strong>${w.id}.</strong> ${w.q}</div>
+                                  <button class="btn-hint" onclick="pop('${w.m}')">Clue</button>
+                                  <button class="btn-reveal" onclick="pop('Psst... the first letter is ${w.a[0]}!')">Hint</button>`;
+                list.appendChild(item);
+            });
+        }
+
+        function handle(e, div) {
+            const val = e.target.value.toUpperCase();
+            if (val === e.target.dataset.ans) {
+                div.className = 'cell correct';
+                const inputs = Array.from(document.querySelectorAll('input'));
+                const next = inputs[inputs.indexOf(e.target) + 1];
+                if (next) next.focus();
+                if (inputs.every(i => i.value.toUpperCase() === i.dataset.ans)) win();
+            } else if (val !== "") {
+                div.classList.add('wrong');
+                setTimeout(() => { div.classList.remove('wrong'); e.target.value = ""; }, 400);
+            }
+        }
+
+        function pop(txt) { document.getElementById('p-text').innerText = txt; document.getElementById('overlay').style.display = 'flex'; }
+        function closePopup() { document.getElementById('overlay').style.display = 'none'; }
+
+        function win() {
+            pop("HAPPY BIRTHDAY SAI! 🎉 You solved our story. I love you forever!");
+            setInterval(() => {
+                const h = document.createElement('div');
+                h.innerHTML = '❤️'; h.style.position = 'fixed';
+                h.style.left = Math.random() * 100 + 'vw'; h.style.top = '100vh';
+                document.body.appendChild(h);
+                h.animate([{transform:'translateY(0)'}, {transform:'translateY(-110vh)'}], 3000);
+            }, 100);
+        }
+
+        init();
+    </script>
+</body>
+</html>
