@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Puzzle for My Favorite Person ❤️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Aptos:wght@400;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0b0b;
+            --cell-size: 38px;
+            --correct: #2ecc71;
+            --wrong: #e74c3c;
+            --highlight: #f1c40f;
+            --box-bg: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Aptos', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        h1 { font-family: 'Dancing Script', cursive; color: #ff4d6d; font-size: 3rem; margin-bottom: 10px; }
+
+        /* The Grid */
+        #grid-wrapper {
+            background: #1a1a1a;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(255, 77, 109, 0.2);
+            display: grid;
+            grid-template-columns: repeat(20, var(--cell-size));
+            grid-template-rows: repeat(18, var(--cell-size));
+            gap: 3px;
+            margin: 20px 0;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            background: var(--box-bg);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #222;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .cell input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            outline: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .empty { background: transparent !important; visibility: hidden; }
+        .highlighted { background: var(--highlight) !important; color: black; }
+        .correct { background: var(--correct) !important; color: white !important; transform: scale(1.05); }
+        .wrong { background: var(--wrong) !important; color: white !important; animation: shake 0.3s; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        /* Controls & Buttons */
+        #clue-section { max-width: 800px; text-align: center; }
+        #active-clue { 
+            font-style: italic; font-size: 1.2rem; color: #ff85a1; 
+            margin: 20px 0; min-height: 1.5em; text-shadow: 0 0 5px rgba(255,133,161,0.5);
+        }
+        
+        .btn-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        button {
+            padding: 10px 18px; border: none; border-radius: 25px;
+            cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .btn-clue { background: #ff4d6d; color: white; }
+        .btn-hint { background: #4cc9f0; color: white; }
+        button:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(255,77,109,0.4); }
+
+        /* Popups */
+        #overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center;
+        }
+        #popup {
+            background: white; color: #222; padding: 40px; border-radius: 20px;
+            text-align: center; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #popup h2 { font-family: 'Dancing Script', cursive; color: #ff4d6d; font-size: 2.5rem; }
+        
+        @keyframes popUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .heart { position: fixed; font-size: 20px; z-index: 999; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <h1>Happy Birthday, Sai! ❤️</h1>
+    <div id="grid-wrapper"></div>
+
+    <div id="clue-section">
+        <div id="active-clue">Click a clue button below to start...</div>
+        <div class="btn-container" id="btn-list"></div>
+    </div>
+
+    <div id="overlay">
+        <div id="popup">
+            <h2 id="popup-title">Sweet Message</h2>
+            <p id="popup-text"></p>
+            <button onclick="closePopup()" style="background:#ff4d6d; color:white;">Continue ❤️</button>
+        </div>
+    </div>
+
+    <script>
+        const gridLetters = [
+            // Using row/col based on your image
+            {r:2, c:10, a:'A'}, {r:2, c:11, a:'C', h:true}, {r:2, c:12, a:'T'}, {r:2, c:13, a:'I'}, {r:2, c:14, a:'O'}, {r:2, c:15, a:'N'}, {r:2, c:16, a:'S', h:true},
+            {r:3, c:11, a:'A'}, {r:4, c:7, a:'L', h:true}, {r:4, c:8, a:'I'}, {r:4, c:9, a:'S'}, {r:4, c:10, a:'T'}, {r:4, c:11, a:'A'}, {r:4, c:12, a:'E', h:true}, {r:4, c:13, a:'N'},
+            {r:5, c:11, a:'L'}, {r:6, c:11, a:'I'}, {r:7, c:6, a:'U'}, {r:7, c:11, a:'N'},
+            {r:8, c:0, a:'T'}, {r:8, c:6, a:'S', h:true}, {r:8, c:7, a:'I'}, {r:8, c:8, a:'L', h:true}, {r:8, c:9, a:'E'}, {r:8, c:10, a:'N'}, {r:8, c:11, a:'C', h:true}, {r:8, c:12, a:'E'},
+            {r:9, c:0, a:'I'}, {r:9, c:8, a:'O'}, {r:9, c:11, a:'A'}, {r:9, c:15, a:'S'},
+            {r:10, c:0, a:'M', h:true}, {r:10, c:1, a:'A'}, {r:10, c:2, a:'R'}, {r:10, c:3, a:'R'}, {r:10, c:4, a:'Y'}, {r:10, c:5, a:'I', h:true}, {r:10, c:6, a:'N'}, {r:10, c:7, a:'G'}, {r:10, c:9, a:'Y'}, {r:10, c:10, a:'O'}, {r:10, c:11, a:'U', h:true}, {r:10, c:13, a:'Y'}, {r:10, c:14, a:'O'}, {r:10, c:15, a:'U', h:true},
+            {r:11, c:0, a:'E'}, {r:11, c:6, a:'O'}, {r:11, c:8, a:'N'}, {r:11, c:11, a:'I', h:true}, {r:11, c:15, a:'B'},
+            {r:12, c:6, a:'U'}, {r:12, c:8, a:'G'}, {r:12, c:11, a:'S'}, {r:12, c:12, a:'A'}, {r:12, c:13, a:'M'}, {r:12, c:14, a:'B'}, {r:12, c:15, a:'B'}, {r:12, c:16, a:'A'}, {r:12, c:17, a:'R', h:true},
+            {r:13, c:8, a:'T', h:true}, {r:13, c:11, a:'L'}, {r:13, c:15, a:'U'},
+            {r:14, c:8, a:'A'}, {r:14, c:11, a:'A'},
+            {r:15, c:5, a:'E'}, {r:15, c:6, a:'V'}, {r:15, c:7, a:'O'}, {r:15, c:8, a:'L', h:true}, {r:15, c:11, a:'N', h:true},
+            {r:16, c:8, a:'K'}, {r:16, c:11, a:'D'},
+            {r:17, c:8, a:'S'}
+        ];
+
+        const clueData = [
+            {q: "The reason my bad days don’t last long", m: "Because you're my favorite medicine, Sai! ❤️"},
+            {q: "Our favorite way to spend time together", m: "I cherish every word we share. 💬"},
+            {q: "The trip that changed everything for us", m: "That island holds our best memories! 🏝️"},
+            {r: "The nickname only I use for you", m: "My one and only Subbu! 🥰"},
+            {q: "Your favorite comfort food", m: "Spicy, warm, and perfect—just like you! 🍛"},
+            {q: "What you do when you’re stressed", m: "I'll always be here to hold your hand in the quiet. 🤫"},
+            {q: "What I see when I imagine my future", m: "It's always been you, from the start. 👩‍❤️‍👨"},
+            {q: "The best decision of my life", m: "Best. Choice. Ever. 💍"},
+            {q: "What you do when I’m upset", m: "Thank you for being my rock. 👂"},
+            {q: "What you give when I need it most", m: "You are so generous with your heart. ⏳"},
+            {q: "Your way of saying “I care”", m: "Your effort speaks louder than words. ✨"}
+        ];
+
+        const container = document.getElementById('grid-wrapper');
+        const activeClue = document.getElementById('active-clue');
+
+        function init() {
+            for (let r = 0; r < 18; r++) {
+                for (let c = 0; c < 20; c++) {
+                    const data = gridLetters.find(l => l.r === r && l.c === c);
+                    const div = document.createElement('div');
+                    div.className = 'cell ' + (data ? '' : 'empty');
+                    
+                    if (data) {
+                        if (data.h) {
+                            div.classList.add('highlighted');
+                            div.innerText = data.a;
+                        } else {
+                            const input = document.createElement('input');
+                            input.maxLength = 1;
+                            input.dataset.ans = data.a;
+                            input.addEventListener('input', (e) => handleInput(e, div));
+                            div.appendChild(input);
+                        }
+                    }
+                    container.appendChild(div);
+                }
+            }
+
+            clueData.forEach((clue, i) => {
+                const btnWrap = document.createElement('div');
+                btnWrap.style.display = "inline-block";
+                
+                const qBtn = document.createElement('button');
+                qBtn.className = 'btn-clue';
+                qBtn.innerText = `Clue ${i+1}`;
+                qBtn.onclick = () => { activeClue.innerText = clue.q; showPopup("Hint!", clue.m); };
+                
+                const hBtn = document.createElement('button');
+                hBtn.className = 'btn-hint';
+                hBtn.innerText = `?`;
+                hBtn.onclick = () => showPopup("A Little Help...", "Keep going, Sai! You're doing great!");
+
+                btnWrap.appendChild(qBtn);
+                btnWrap.appendChild(hBtn);
+                document.getElementById('btn-list').appendChild(btnWrap);
+            });
+        }
+
+        function handleInput(e, parent) {
+            const char = e.target.value.toUpperCase();
+            if (char === e.target.dataset.ans) {
+                parent.className = 'cell correct';
+                const next = findNext(e.target);
+                if (next) next.focus();
+                checkWin();
+            } else if (char !== "") {
+                parent.className = 'cell wrong';
+                setTimeout(() => { parent.classList.remove('wrong'); e.target.value = ""; }, 500);
+            }
+        }
+
+        function findNext(current) {
+            const inputs = Array.from(document.querySelectorAll('input'));
+            return inputs[inputs.indexOf(current) + 1];
+        }
+
+        function showPopup(title, text) {
+            document.getElementById('popup-title').innerText = title;
+            document.getElementById('popup-text').innerText = text;
+            document.getElementById('overlay').style.display = 'flex';
+        }
+
+        function closePopup() { document.getElementById('overlay').style.display = 'none'; }
+
+        function checkWin() {
+            const inputs = Array.from(document.querySelectorAll('input'));
+            if (inputs.every(i => i.value.toUpperCase() === i.dataset.ans)) {
+                showPopup("HAPPY BIRTHDAY SAI! 🎉", "You completed our puzzle! You are my everything. Let's celebrate! ❤️");
+                celebrate();
+            }
+        }
+
+        function celebrate() {
+            setInterval(() => {
+                const heart = document.createElement('div');
+                heart.innerHTML = '❤️';
+                heart.className = 'heart';
+                heart.style.left = Math.random() * 100 + 'vw';
+                heart.style.top = '100vh';
+                document.body.appendChild(heart);
+                heart.animate([
+                    { transform: 'translateY(0) scale(1)', opacity: 1 },
+                    { transform: `translateY(-100vh) scale(1.5) rotate(${Math.random()*360}deg)`, opacity: 0 }
+                ], { duration: 3000, easing: 'ease-out' });
+                setTimeout(() => heart.remove(), 3000);
+            }, 100);
+        }
+
+        init();
+    </script>
+</body>
+</html>
