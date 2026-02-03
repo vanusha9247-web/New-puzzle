@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HBD My Love! ❤️</title>
+    <style>
+        :root {
+            --bg: #fff0f3;
+            --primary: #590d22; 
+            --accent: #ff4d6d; 
+            --gold: #d4af37;
+            --cell-size: 23px; 
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px; margin: 0;
+        }
+
+        .grid-container {
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            margin: 10px 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(16, var(--cell-size));
+            grid-template-rows: repeat(16, var(--cell-size));
+            gap: 1px;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            background-color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .cell.active { background-color: #d8f3dc; }
+
+        .cell input {
+            width: 100%; height: 100%;
+            border: none; text-align: center;
+            text-transform: uppercase; font-weight: bold;
+            font-size: 14px; background: transparent;
+            outline: none; color: #333;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0;
+        }
+
+        .cell.correct { background-color: #b7e4c7 !important; }
+
+        .q-number {
+            position: absolute; top: 0px; left: 1px;
+            font-size: 7px; color: #555; pointer-events: none;
+        }
+
+        .clue-section {
+            width: 95%; max-width: 400px;
+            background: white; padding: 15px;
+            border-radius: 15px; margin-bottom: 50px;
+        }
+
+        .clue-item { margin-bottom: 12px; font-size: 13px; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px;}
+        
+        button {
+            padding: 4px 8px; border-radius: 4px;
+            border: 1px solid var(--primary); cursor: pointer;
+            font-size: 10px; background: white; color: var(--primary);
+            margin-top: 4px;
+        }
+
+        .popup {
+            display: none; position: fixed; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%);
+            background: #590d22; color: white; padding: 25px; 
+            border-radius: 20px; z-index: 101; text-align: center; 
+            width: 80%; border: 2px solid var(--gold);
+        }
+
+        .overlay { 
+            display: none; position: fixed; top: 0; left: 0; 
+            width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; 
+        }
+    </style>
+</head>
+<body>
+
+<h1 style="font-size: 1.8rem; margin: 10px 0;">HBD My Love! ❤️</h1>
+
+<div class="grid-container">
+    <div class="grid" id="main-grid"></div>
+</div>
+
+<div class="clue-section">
+    <h3 style="margin-top:0">Clues</h3>
+    <div id="clue-list"></div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="popup" id="popup">
+    <h2 id="pop-title" style="margin-top:0">✨ YOU DID IT!</h2>
+    <p id="pop-msg"></p>
+    <button onclick="closePopup()" style="background:var(--accent); color:white; border:none; padding:10px 20px; border-radius:10px; width:100%; font-size:14px;">Next ❤️</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+<script>
+    const puzzleData = [
+        { id: 11, q: "Your way of saying 'I care'", a: "ACTIONS", r: 1, c: 9, d: "across", m: "I see your love in every action! ❤️" },
+        { id: 3, q: "The trip that changed everything", a: "CATALINAISLAND", r: 1, c: 10, d: "down", m: "Best trip ever! 🌊" },
+        { id: 9, q: "What you do when I'm upset", a: "LISTEN", r: 3, c: 7, d: "across", m: "Thank you for listening. 👂" },
+        { id: 1, q: "The word that started it all", a: "LOVE", r: 4, c: 2, d: "down", m: "Love is our superpower! 🤟" },
+        { id: 12, q: "The reason my bad days don't last", a: "YOU", r: 4, c: 6, d: "down", m: "You are my sunshine. ☀️" },
+        { id: 2, q: "Our favorite way to spend time", a: "LONGTALKS", r: 4, c: 8, d: "down", m: "To infinity more midnight chats! 🌙" },
+        { id: 10, q: "What you give when I need it most", a: "TIME", r: 6, c: 1, d: "down", m: "Thank you for every second. ⏳" },
+        { id: 7, q: "What you do when you're stressed", a: "SILENCE", r: 7, c: 6, d: "across", m: "I'll always be your peace. 🤫" },
+        { id: 8, q: "The best decision of my life", a: "MARRYINGYOU", r: 9, c: 1, d: "across", m: "Best decision ever! 💍" },
+        { id: 4, q: "The nickname only I use for you", a: "SUBBU", r: 7, c: 13, d: "down", m: "My one and only Subbu. 😘" },
+        { id: 13, q: "Your favorite comfort food", a: "SAMBAR", r: 11, c: 10, d: "across", m: "Sambar is better with you! 🍛" },
+        { id: 5, q: "What I see in my future", a: "US", r: 11, c: 10, d: "down", m: "Always US. 👩‍❤️‍👨" }
+    ];
+
+    const solvedWords = new Set();
+
+    function init() {
+        const grid = document.getElementById('main-grid');
+        for (let i = 0; i < 16 * 16; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            const r = Math.floor(i / 16);
+            const c = i % 16;
+            cell.id = `c-${r}-${c}`;
+            grid.appendChild(cell);
+        }
+
+        puzzleData.forEach((w, idx) => {
+            for (let i = 0; i < w.a.length; i++) {
+                const r = w.d === 'across' ? w.r : w.r + i;
+                const c = w.d === 'across' ? w.c + i : w.c;
+                const cell = document.getElementById(`c-${r}-${c}`);
+                cell.classList.add('active');
+                if (!cell.querySelector('input')) {
+                    const input = document.createElement('input');
+                    input.maxLength = 1;
+                    input.dataset.r = r;
+                    input.dataset.c = c;
+                    if (i === 0) { input.value = w.a[0]; cell.classList.add('correct'); }
+                    input.addEventListener('input', (e) => validate(e, r, c));
+                    cell.appendChild(input);
+                }
+                if (i === 0) {
+                    const num = document.createElement('span');
+                    num.className = 'q-number';
+                    num.innerText = w.id;
+                    cell.appendChild(num);
+                }
+            }
+            const item = document.createElement('div');
+            item.className = 'clue-item';
+            item.innerHTML = `<strong>${w.id}.</strong> ${w.q} <button onclick="reveal(${idx})">Reveal Letter</button>`;
+            document.getElementById('clue-list').appendChild(item);
+        });
+    }
+
+    function validate(e, r, c) {
+        const char = e.target.value.toUpperCase();
+        if (char === getChar(r, c)) {
+            e.target.parentElement.classList.add('correct');
+            check();
+        }
+    }
+
+    function getChar(r, c) {
+        let res = "";
+        puzzleData.forEach(w => {
+            for (let i = 0; i < w.a.length; i++) {
+                if ((w.d==='across'?w.r:w.r+i)==r && (w.d==='across'?w.c+i:w.c)==c) res = w.a[i];
+            }
+        });
+        return res;
+    }
+
+    function check() {
+        puzzleData.forEach(w => {
+            if (solvedWords.has(w.id)) return;
+            let done = true;
+            for (let i = 0; i < w.a.length; i++) {
+                const r = w.d === 'across' ? w.r : w.r + i;
+                const c = w.d === 'across' ? w.c + i : w.c;
+                if (document.querySelector(`input[data-r="${r}"][data-c="${c}"]`).value.toUpperCase() !== w.a[i]) done = false;
+            }
+            if (done) {
+                solvedWords.add(w.id);
+                if (solvedWords.size === puzzleData.length) {
+                    confetti({ particleCount: 200, spread: 70 });
+                    pop("HAPPY BIRTHDAY! ❤️", "You've solved the puzzle of my heart. I love you endlessly!");
+                } else {
+                    pop("YOU GOT IT! 🥰", w.m);
+                }
+            }
+        });
+    }
+
+    function reveal(idx) {
+        const w = puzzleData[idx];
+        for (let i = 0; i < w.a.length; i++) {
+            const r = w.d === 'across' ? w.r : w.r + i;
+            const c = w.d === 'across' ? w.c + i : w.c;
+            const input = document.querySelector(`input[data-r="${r}"][data-c="${c}"]`);
+            if(input.value === "") {
+                input.value = w.a[i];
+                input.parentElement.classList.add('correct');
+                break;
+            }
+        }
+        check();
+    }
+
+    function pop(title, msg) {
+        document.getElementById('pop-title').innerText = title;
+        document.getElementById('pop-msg').innerText = msg;
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('popup').style.display = 'block';
+    }
+
+    function closePopup() {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('popup').style.display = 'none';
+    }
+
+    init();
+</script>
+</body>
+</html>
